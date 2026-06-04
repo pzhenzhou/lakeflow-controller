@@ -1,0 +1,19 @@
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: lakeflow-queue
+  namespace: lakeflow-controller-test
+spec:
+  weight: 1
+  reclaimable: true
+  capability:
+    cpu: "2"
+    memory: 2Gi
+  # deserved field is only used by capacity plugin
+  deserved:
+    cpu: "1"
+    memory: 2Gi
+  guarantee:
+    resource:
+      cpu: "1"
+      memory: 1Gi

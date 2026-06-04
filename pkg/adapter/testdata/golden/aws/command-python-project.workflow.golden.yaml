@@ -1,0 +1,18 @@
+metadata:
+  creationTimestamp: null
+  generateName: golden-command-python-project-
+  labels:
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: golden-command-python-project
+    lakeflow.io/state: Active
+  namespace: lakeflow-golden
+spec:
+  arguments: {}
+  podGC:
+    deleteDelayDuration: 24h0m0s
+    strategy: OnWorkflowSuccess
+  workflowTemplateRef:
+    name: golden-command-python-project-template-1700000000
+status:
+  finishedAt: null
+  startedAt: null

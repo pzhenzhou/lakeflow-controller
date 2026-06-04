@@ -1,0 +1,14 @@
+allowVolumeExpansion: true
+metadata:
+  creationTimestamp: null
+  name: golden-oss-sc
+parameters:
+  bucketName: golden-bucket
+  csi.storage.k8s.io/node-publish-secret-name: golden-oss-credentials
+  csi.storage.k8s.io/node-publish-secret-namespace: lakeflow-golden
+  endpoint: oss-cn-hangzhou-internal.aliyuncs.com
+  prefix: /data/golden
+  region: us-east-1
+provisioner: s3.csi.aws.com
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer

@@ -1,0 +1,58 @@
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: golden-command-script
+    lakeflow.io/state: Active
+    lakeflow.io/template-timestamp: "1700000000"
+  name: golden-command-script-template-1700000000
+  namespace: lakeflow-golden
+spec:
+  arguments: {}
+  entrypoint: golden-command-script-main
+  templates:
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: scriptPath
+            value: /mnt/oss/scripts/process.sh
+        name: run-script
+        template: run-script
+    inputs: {}
+    metadata: {}
+    name: golden-command-script-main
+    outputs: {}
+  - container:
+      args:
+      - '{{inputs.parameters.scriptPath}}'
+      - --date
+      - "2026-01-01"
+      command:
+      - /bin/bash
+      image: docker-registry.lakeflow.io/data-prod/python3-pipinstall-ckclient-pyjindo6.9.1:v2.0.2
+      imagePullPolicy: IfNotPresent
+      name: run-script
+      resources:
+        limits:
+          cpu: "1"
+          memory: 512Mi
+        requests:
+          cpu: 500m
+          memory: 256Mi
+    inputs:
+      parameters:
+      - name: scriptPath
+        value: /mnt/oss/scripts/process.sh
+    metadata:
+      annotations:
+        scheduling.volcano.sh/queue-name: golden-queue
+      labels:
+        lakeflow.io/name: golden-command-script
+        lakeflow.io/task: run-script
+    name: run-script
+    nodeSelector:
+      volcano.sh/nodegroup-name: volcano-batch-job
+    outputs: {}
+    schedulerName: volcano
+    serviceAccountName: lakeflow-runner

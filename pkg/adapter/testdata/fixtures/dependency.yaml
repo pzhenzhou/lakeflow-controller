@@ -1,0 +1,39 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: golden-dependency
+  namespace: lakeflow-golden
+spec:
+  trigger:
+    depend:
+      mode: all
+      workflows:
+        - name: golden-spark-schedule
+          namespace: lakeflow-golden
+          phase: Succeeded
+  tasks:
+    - name: downstream-job
+      executor: spark
+      sparkExecutor:
+        image: docker-registry.lakeflow.io/data-prod/spark:3.5.3-scala2.12-java17-python3-r-ubuntu
+        sparkVersion: "3.5.3"
+        mainClass: com.example.Downstream
+        mainApplicationFile: local:///mnt/spark/downstream.jar
+        queueName: golden-queue
+        driverResource:
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+        executorResource:
+          replicas: 1
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"

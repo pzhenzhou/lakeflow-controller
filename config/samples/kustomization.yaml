@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- lakeflow_v1alpha1_lakeflow.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

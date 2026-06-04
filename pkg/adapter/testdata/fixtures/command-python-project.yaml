@@ -1,0 +1,17 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: golden-command-python-project
+  namespace: lakeflow-golden
+spec:
+  trigger: {}
+  tasks:
+    - name: run-project
+      executor: python
+      commandExecutor:
+        image: docker-registry.lakeflow.io/data-prod/python3-pipinstall-ckclient-pyjindo6.9.1:v2.0.2
+        pythonProjectMode:
+          archivePath: /mnt/oss/projects/simple-etl.zip
+          entryPoint: main.py
+          args: ["--env", "golden"]
+          dependencyScript: build-dep.bash

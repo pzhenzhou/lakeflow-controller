@@ -1,0 +1,58 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: lw-linearly-depend
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: lw-linearly-depend
+spec:
+  # Immediate execution trigger
+  trigger: { }
+  
+  # Linear dependency: task1 (base executor) -> task2 (Spark executor)
+  tasks:
+    - name: base-task
+      executor: bash
+      commandExecutor:
+        # InlineMode: execute command directly
+        inlineMode:
+          command: [ "/bin/bash", "-c" ]
+          args: [ "echo 'Base processing started'; mkdir -p /tmp/data/processed; echo 'Processing input data in batch mode...'; sleep 5; echo 'sample processed data' > /tmp/data/processed/result.txt; echo 'Base processing completed successfully'" ]
+      retryPolicy:
+        maxRetries: 3
+        backOff: "30s"
+        backoffFactor: 2.0
+
+    - name: spark-task
+      executor: spark
+      dependsOn: [ "base-task" ]
+      sparkExecutor:
+        mainClass: org.apache.spark.examples.SparkPi
+        mainApplicationFile: local:///opt/spark/examples/jars/spark-examples.jar
+        args: [ "50" ]
+        queueName: default
+        driverResource:
+          replicas: 1
+          resources:
+            requests:
+              cpu: "1"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "1Gi"
+        executorResource:
+          replicas: 1
+          resources:
+            requests:
+              cpu: "1"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "1Gi"
+        serviceAccount: "spark-operator-spark"
+      retryPolicy:
+        maxRetries: 2
+        backOff: "60s"
+        backoffFactor: 1.5

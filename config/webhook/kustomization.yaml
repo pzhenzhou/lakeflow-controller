@@ -1,0 +1,7 @@
+resources:
+- manifests.yaml
+- service.yaml
+
+# the following config is for teaching kustomize how to do var substitution
+configurations:
+- kustomizeconfig.yaml

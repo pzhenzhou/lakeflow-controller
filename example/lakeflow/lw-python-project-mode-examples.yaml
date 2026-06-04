@@ -1,0 +1,156 @@
+---
+# Example 1: Python project with top-level directory structure
+# Archive structure: myproject.zip/myproject/main.py
+# Working directory: /data/myproject-extract/myproject/
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: python-project-with-dir
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 2 * * *"
+  tasks:
+    - name: etl-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/myproject.zip"
+          entryPoint: "main.py"
+          args: ["--env", "production", "--verbose"]
+          dependencyScript: "build-dep.bash"
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "5Gi"
+          ossPVCName: "oss-pvc-shared"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+          autoCreatePVC: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+
+---
+# Example 2: Python project with files at root level
+# Archive structure: simple-etl.zip/main.py, simple-etl.zip/config.py
+# Working directory: /data/simple-etl-extract/
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: python-project-flat
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 3 * * *"
+  tasks:
+    - name: simple-etl
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/simple-etl.tar.gz"
+          entryPoint: "main.py"
+          args: ["--config", "prod"]
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "5Gi"
+          ossPVCName: "oss-pvc-shared"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+          autoCreatePVC: true
+
+---
+# Example 3: Python project using uv command (modern Python dependency management)
+# Archive structure: data-pipeline.zip/data-pipeline/
+# Working directory: /data/data-pipeline-extract/data-pipeline/
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: python-project-uv
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 4 * * *"
+  tasks:
+    - name: modern-python-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/data-pipeline.zip"
+          cmd: "uv run main.py --mode batch"
+          dependencyScript: "scripts/install-deps.sh"
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "10Gi"
+          ossPVCName: "oss-pvc-shared"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+          autoCreatePVC: true
+
+---
+# Example 4: Python project with arguments containing spaces
+# Demonstrates proper handling of arguments with spaces
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: python-project-complex-args
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 5 * * *"
+  tasks:
+    - name: complex-args-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/analytics.zip"
+          entryPoint: "run.py"
+          args: 
+            - "--config"
+            - "production settings"
+            - "--output-path"
+            - "/data/output/report with spaces.csv"
+            - "--verbose"
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "5Gi"
+          ossPVCName: "oss-pvc-shared"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+          autoCreatePVC: true
+
+---
+# Example 5: Minimal Python project (no dependencies, no args)
+# Archive structure: quick-script.zip/script.py
+# Working directory: /data/quick-script-extract/
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: python-project-minimal
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 6 * * *"
+  tasks:
+    - name: quick-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/quick-script.tar.gz"
+          entryPoint: "script.py"
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "2Gi"
+          ossPVCName: "oss-pvc-shared"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+          autoCreatePVC: true
+

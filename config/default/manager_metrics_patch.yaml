@@ -1,0 +1,7 @@
+# This patch replaces the args to configure the metrics endpoint using HTTP without authentication
+- op: replace
+  path: /spec/template/spec/containers/0/args
+  value:
+    - --health-probe-bind-address=:8081
+    - --metrics-bind-address=:8080
+    - --metrics-secure=false

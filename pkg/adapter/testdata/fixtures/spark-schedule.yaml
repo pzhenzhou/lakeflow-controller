@@ -1,0 +1,71 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: golden-spark-schedule
+  namespace: lakeflow-golden
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    lakeflow.io/name: golden-spark-schedule
+spec:
+  trigger:
+    schedule:
+      cron: "*/5 * * * *"
+      timezone: "UTC"
+      jitter: "30s"
+      concurrencyPolicy: "Forbid"
+      stopStrategy:
+        phase: "complete"
+        count: 1
+  tasks:
+    - name: daily-extract
+      executor: bash
+      serviceAccountName: lakeflow-runner
+      commandExecutor:
+        image: docker-registry.lakeflow.io/data-prod/python3-pipinstall-ckclient-pyjindo6.9.1:v2.0.2
+        inlineMode:
+          command: ["/bin/bash", "-c"]
+          args: ["echo 'daily extraction'"]
+      retryPolicy:
+        maxRetries: 3
+        backOff: "60s"
+        backoffFactor: 2.0
+    - name: daily-transform
+      executor: spark
+      serviceAccountName: lakeflow-runner
+      dependsOn: ["daily-extract"]
+      sparkExecutor:
+        image: docker-registry.lakeflow.io/data-prod/spark:3.5.3-scala2.12-java17-python3-r-ubuntu
+        sparkVersion: "3.5.3"
+        mainClass: org.apache.spark.examples.SparkPi
+        mainApplicationFile: local:///opt/spark/examples/jars/spark-examples.jar
+        args: ["5"]
+        queueName: golden-queue
+        driverResource:
+          resources:
+            requests:
+              cpu: "1"
+              memory: "500m"
+            limits:
+              cpu: "1"
+              memory: "500m"
+        executorResource:
+          replicas: 2
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+        hiveMetastoreSpec:
+          hiveMetastoreHost: hive-metastore.golden.local
+          hiveMetastorePort: 3306
+          hiveMetastoreDB: golden_metastore
+          libPath: /opt/hive/lib/*
+          userName: FAKE_HIVE_USER
+          password: FAKE_HIVE_PASSWORD
+        sparkConfig:
+          spark.sql.adaptive.enabled: "true"
+      retryPolicy:
+        maxRetries: 2
+        backOff: "120s"

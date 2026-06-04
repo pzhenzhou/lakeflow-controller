@@ -1,0 +1,143 @@
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: golden-spark-features
+    lakeflow.io/state: Active
+    lakeflow.io/template-timestamp: "1700000000"
+  name: golden-spark-features-template-1700000000
+  namespace: lakeflow-golden
+spec:
+  arguments: {}
+  entrypoint: golden-spark-features-main
+  templates:
+  - dag:
+      tasks:
+      - arguments: {}
+        name: feature-job
+        template: feature-job
+    inputs: {}
+    metadata: {}
+    name: golden-spark-features-main
+    outputs: {}
+  - inputs: {}
+    metadata:
+      labels:
+        lakeflow.io/name: golden-spark-features
+        lakeflow.io/task: feature-job
+    name: feature-job
+    nodeSelector:
+      volcano.sh/nodegroup-name: volcano-batch-job
+    outputs: {}
+    resource:
+      action: create
+      failureCondition: status.applicationState.state == FAILED
+      manifest: |-
+        apiVersion: sparkoperator.k8s.io/v1beta2
+        kind: SparkApplication
+        metadata:
+          creationTimestamp: null
+          generateName: feature-job-
+          labels:
+            lakeflow.io/name: golden-spark-features
+            lakeflow.io/task: feature-job
+            workflows.argoproj.io/workflow: '{{workflow.name}}'
+          namespace: lakeflow-golden
+        spec:
+          batchScheduler: volcano
+          batchSchedulerOptions:
+            queue: golden-queue
+          deps: {}
+          driver:
+            cores: 1
+            env:
+            - name: JAVA_VERSION
+              value: 17.0.15
+            - name: JAVA_SPECIFICATION_VERSION
+              value: "17"
+            - name: LD_LIBRARY_PATH
+              value: /mnt/spark/native:/lib64:/usr/lib64:/lib:/usr/lib
+            memory: 1Gi
+            nodeSelector:
+              volcano.sh/nodegroup-name: volcano-batch-job
+            podSecurityContext:
+              fsGroup: 185
+              fsGroupChangePolicy: Always
+            volumeMounts:
+            - mountPath: /mnt/spark
+              name: spark-on-k8s-oss-volume
+          executor:
+            cores: 2
+            deleteOnTermination: false
+            env:
+            - name: JAVA_VERSION
+              value: 17.0.15
+            - name: JAVA_SPECIFICATION_VERSION
+              value: "17"
+            - name: LD_LIBRARY_PATH
+              value: /mnt/spark/native:/lib64:/usr/lib64:/lib:/usr/lib
+            instances: 3
+            memory: 4Gi
+            memoryOverhead: 1g
+            nodeSelector:
+              volcano.sh/nodegroup-name: volcano-batch-job
+            podSecurityContext:
+              fsGroup: 185
+              fsGroupChangePolicy: Always
+            securityContext:
+              runAsGroup: 185
+              runAsUser: 185
+            volumeMounts:
+            - mountPath: /mnt/spark
+              name: spark-on-k8s-oss-volume
+          image: docker-registry.lakeflow.io/data-prod/spark:3.5.3-scala2.12-java17-python3-r-ubuntu
+          imagePullPolicy: IfNotPresent
+          mainApplicationFile: local:///mnt/spark/feature-job.jar
+          mainClass: com.example.FeatureJob
+          mode: cluster
+          sparkConf:
+            spark.driver.defaultJavaOptions: -Djava.version=17.0.15 -Djava.specification.version=17
+            spark.driver.extraClassPath: /mnt/spark/jars/jindosdk-6.9.1/jindo-core-6.9.1-nextarch.jar:/mnt/spark/jars/jindosdk-6.9.1/jindo-sdk-6.9.1-nextarch.jar:/mnt/spark/jars/jindosdk-6.9.1/jindo-core-linux-ubuntu22-x86_64-6.9.1-nextarch.jar:/mnt/spark/jars/iceberg-spark-runtime/iceberg-spark-runtime-3.5_2.12-1.7.2.jar:/mnt/spark/jars/iceberg-spark-runtime/iceberg-hive-metastore-1.7.2.jar:/mnt/spark/jars/lzo-lib/hadoop-lzo.jar:/mnt/spark/jars/mysql_8.0/mysql-connector-j-8.0.33.jar:/mnt/spark/jars/udf/udf.jar:/mnt/spark/jars/udf/gzip_decode.jar:/mnt/spark/jars/udf/custom-udaf.jar:/mnt/spark/jars/udf/bitmap-udf.jar:/mnt/spark/jars/udf/md5.jar
+            spark.driver.extraJavaOptions: --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED
+              --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED
+              --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED
+              --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED
+              --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED
+              -Dlog4j2.formatMsgNoLookups=true -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:InitiatingHeapOccupancyPercent=45
+              -XX:+ParallelRefProcEnabled -XX:+AlwaysPreTouch
+            spark.driver.extraLibraryPath: /mnt/spark/native
+            spark.executor.defaultJavaOptions: -Djava.version=17.0.15 -Djava.specification.version=17
+            spark.executor.extraClassPath: /mnt/spark/jars/jindosdk-6.9.1/jindo-core-6.9.1-nextarch.jar:/mnt/spark/jars/jindosdk-6.9.1/jindo-sdk-6.9.1-nextarch.jar:/mnt/spark/jars/jindosdk-6.9.1/jindo-core-linux-ubuntu22-x86_64-6.9.1-nextarch.jar:/mnt/spark/jars/iceberg-spark-runtime/iceberg-spark-runtime-3.5_2.12-1.7.2.jar:/mnt/spark/jars/iceberg-spark-runtime/iceberg-hive-metastore-1.7.2.jar:/mnt/spark/jars/lzo-lib/hadoop-lzo.jar:/mnt/spark/jars/mysql_8.0/mysql-connector-j-8.0.33.jar:/mnt/spark/jars/udf/udf.jar:/mnt/spark/jars/udf/gzip_decode.jar:/mnt/spark/jars/udf/custom-udaf.jar:/mnt/spark/jars/udf/bitmap-udf.jar:/mnt/spark/jars/udf/md5.jar
+            spark.executor.extraJavaOptions: --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED
+              --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED
+              --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED
+              --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED
+              --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED
+              -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:InitiatingHeapOccupancyPercent=45
+              -XX:+ParallelRefProcEnabled -XX:+AlwaysPreTouch
+            spark.executor.extraLibraryPath: /mnt/spark/native
+            spark.hadoop.fs.AbstractFileSystem.oss.impl: com.aliyun.jindodata.oss.JindoOSS
+            spark.hadoop.fs.oss.impl: com.aliyun.jindodata.oss.JindoOssFileSystem
+            spark.hadoop.hive.metastore.schema.verification: "false"
+            spark.hadoop.hive.metastore.uris: thrift://hive-metastore.golden.local:9083
+            spark.jars.excludes: org.slf4j:slf4j-log4j12,log4j:log4j
+            spark.kubernetes.driver.volumes.emptyDir.spark-local-dir-1.mount.path: /driver-local-dir
+            spark.kubernetes.driver.volumes.emptyDir.spark-local-dir-1.mount.readOnly: "false"
+            spark.memory.offHeap.size: 1g
+            spark.sql.adaptive.skewJoin.enabled: "true"
+            spark.sql.catalog.iceberg: org.apache.iceberg.spark.SparkCatalog
+            spark.sql.catalog.iceberg.type: hive
+            spark.sql.catalog.iceberg.uri: thrift://hive-metastore.golden.local:9083
+            spark.sql.catalog.iceberg.warehouse: oss://golden-bucket/warehouse
+            spark.sql.catalogImplementation: hive
+            spark.sql.extensions: org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+            spark.sql.hive.metastore.jars: path
+            spark.sql.hive.metastore.jars.path: /opt/hive/lib/*
+            spark.sql.hive.metastore.version: 3.1.3
+            spark.sql.streaming.ui.enabled: "false"
+            spark.ui.enabled: "true"
+            spark.ui.showConsoleProgress: "true"
+          sparkVersion: 3.5.3
+          timeToLiveSeconds: 86400
+          type: Java
+      successCondition: status.applicationState.state == COMPLETED

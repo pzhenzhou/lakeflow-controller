@@ -1,0 +1,9 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: kustomize
+  name: lakeflow-sample
+spec:
+  # TODO(user): Add fields here

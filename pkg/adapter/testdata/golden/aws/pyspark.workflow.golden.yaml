@@ -1,0 +1,18 @@
+metadata:
+  creationTimestamp: null
+  generateName: golden-pyspark-
+  labels:
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: golden-pyspark
+    lakeflow.io/state: Active
+  namespace: lakeflow-golden
+spec:
+  arguments: {}
+  podGC:
+    deleteDelayDuration: 24h0m0s
+    strategy: OnWorkflowSuccess
+  workflowTemplateRef:
+    name: golden-pyspark-template-1700000000
+status:
+  finishedAt: null
+  startedAt: null

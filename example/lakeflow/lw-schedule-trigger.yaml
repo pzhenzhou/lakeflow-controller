@@ -1,0 +1,66 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: lw-schedule-trigger
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: lw-schedule-trigger
+spec:
+  # Schedule trigger - runs every 5 minutes
+  trigger:
+    schedule:
+      cron: "*/5 * * * *"
+      timezone: "UTC"
+      jitter: "30s"
+      stopStrategy:
+        phase: "complete"
+        count: 1
+  
+  # Daily data processing workflow
+  tasks:
+    - name: daily-extract
+      executor: bash
+      serviceAccountName: lakeflow-controller
+      commandExecutor:
+        # InlineMode: execute command directly
+        inlineMode:
+          command: [ "/bin/bash", "-c" ]
+          args: [ "echo 'Daily extraction started'; DATE=$(date +%Y-%m-%d); echo \"Processing date: $DATE\"; mkdir -p /tmp/daily/$DATE; echo 'sample daily data' > /tmp/daily/$DATE/extract.txt; echo 'Daily extraction completed'" ]
+      retryPolicy:
+        maxRetries: 3
+        backOff: "60s"
+        backoffFactor: 2.0
+
+    - name: daily-transform
+      executor: spark
+      serviceAccountName: lakeflow-controller
+      dependsOn: [ "daily-extract" ]
+      sparkExecutor:
+        mainClass: org.apache.spark.examples.SparkPi
+        mainApplicationFile: local:///opt/spark/examples/jars/spark-examples.jar
+        args: [ "5" ]
+        queueName: e2e-lakeflow-queue
+        driverResource:
+          resources:
+            requests:
+              cpu: "1"
+              memory: "500m"
+            limits:
+              cpu: "1"
+              memory: "500m"
+        executorResource:
+          replicas: 1
+          resources:
+            requests:
+              cpu: "1"
+              memory: "500m"
+            limits:
+              cpu: "1"
+              memory: "500m"
+        sparkConfig:
+          spark.sql.adaptive.enabled: "true"
+      retryPolicy:
+        maxRetries: 2
+        backOff: "120s"

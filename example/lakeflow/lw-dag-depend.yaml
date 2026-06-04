@@ -1,0 +1,83 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: lw-dag-depend
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: lw-dag-depend
+spec:
+  # Immediate execution trigger
+  trigger: { }
+  
+  # DAG structure with multiple dependencies leading to Spark task
+  tasks:
+    - name: data-preparation
+      executor: bash
+      serviceAccountName: lakeflow-controller
+      commandExecutor:
+        # InlineMode: execute command directly without ConfigMap dependency
+        inlineMode:
+          command: [ "/bin/bash", "-c" ]
+          args: [ "echo 'Data preparation started' && mkdir -p /tmp/data/prepared && echo 'sample data' > /tmp/data/prepared/data.txt && echo 'Data preparation completed'" ]
+
+    - name: data-validation
+      executor: bash
+      dependsOn: [ "data-preparation" ]
+      serviceAccountName: lakeflow-controller
+      commandExecutor:
+        # InlineMode: execute command directly without ConfigMap dependency
+        inlineMode:
+          command: [ "/bin/bash", "-c" ]
+          args: [ "echo 'Data validation started' && ls -la /tmp/data/prepared/ || echo 'No prepared data found (this is normal in separate containers)' && echo 'Validating data.txt...' && echo 'Validation completed (simulated)'" ]
+
+    - name: feature-extraction
+      executor: python
+      dependsOn: [ "data-preparation" ]
+      serviceAccountName: lakeflow-controller
+      commandExecutor:
+        # InlineMode: execute command directly without ConfigMap dependency
+        inlineMode:
+          command: [ "/usr/local/bin/python", "-c" ]
+          args: [ "import os; print('Feature extraction started'); os.makedirs('/tmp/data/features', exist_ok=True); open('/tmp/data/features/features.txt', 'w').write('feature1,feature2,feature3\\n1,2,3\\n4,5,6'); print('Features extracted successfully')" ]
+
+    - name: data-quality-check
+      executor: bash
+      dependsOn: [ "data-validation", "feature-extraction" ]
+      serviceAccountName: lakeflow-controller
+      commandExecutor:
+        # InlineMode: execute command directly without ConfigMap dependency
+        inlineMode:
+          command: [ "/bin/bash", "-c" ]
+          args: [ "echo 'Quality check started' && echo 'Checking for simulated data and features...' && echo 'Quality check completed successfully'" ]
+
+    - name: spark-analytics
+      executor: spark
+      dependsOn: [ "data-quality-check" ]
+      serviceAccountName: lakeflow-controller
+      sparkExecutor:
+        mainClass: org.apache.spark.examples.SparkPi
+        mainApplicationFile: local:///opt/spark/examples/jars/spark-examples.jar
+        args: [ "30" ]
+        queueName: e2e-lakeflow-queue
+        driverResource:
+          resources:
+            requests:
+              cpu: "1"
+              memory: "500m"
+            limits:
+              cpu: "1"
+              memory: "500m"
+        executorResource:
+          replicas: 1
+          resources:
+            requests:
+              cpu: "1"
+              memory: "500m"
+            limits:
+              cpu: "1"
+              memory: "500m"
+        sparkConfig:
+          spark.sql.adaptive.enabled: "true"
+          spark.sql.adaptive.coalescePartitions.enabled: "true"

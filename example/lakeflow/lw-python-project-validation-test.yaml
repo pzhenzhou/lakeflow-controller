@@ -1,0 +1,157 @@
+# Python Project Mode Validation Examples
+# These examples demonstrate the CRD validation rules for pythonProjectMode
+
+---
+# ✅ VALID Example 1: Using entryPoint with args
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: valid-entrypoint-with-args
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 1 * * *"
+  tasks:
+    - name: etl-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/myproject.zip"
+          entryPoint: "main.py"
+          args: ["--config", "prod.json", "--verbose"]
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "5Gi"
+          ossPVCName: "oss-pvc"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+
+---
+# ✅ VALID Example 2: Using cmd without args (all arguments in command string)
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: valid-cmd-without-args
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 2 * * *"
+  tasks:
+    - name: etl-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/myproject.zip"
+          cmd: "uv run main.py --config prod.json --verbose"
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "5Gi"
+          ossPVCName: "oss-pvc"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+
+---
+# ❌ INVALID Example 1: Using cmd WITH args
+# This will be REJECTED by Kubernetes API server with validation error
+# Error: "args cannot be used with cmd; either use entryPoint with args, or include all arguments in the cmd string"
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: invalid-cmd-with-args
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 3 * * *"
+  tasks:
+    - name: etl-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/myproject.zip"
+          cmd: "uv run main.py --env=prod"    # ❌ Using cmd
+          args: ["--config", "prod.json"]      # ❌ Cannot use args with cmd!
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "5Gi"
+          ossPVCName: "oss-pvc"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+
+---
+# ❌ INVALID Example 2: Using BOTH entryPoint AND cmd
+# This will be REJECTED by Kubernetes API server with validation error
+# Error: "entryPoint and cmd are mutually exclusive, specify only one"
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: invalid-both-entrypoint-and-cmd
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 4 * * *"
+  tasks:
+    - name: etl-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/myproject.zip"
+          entryPoint: "main.py"               # ❌ Cannot use both
+          cmd: "uv run main.py"               # ❌ Cannot use both
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "5Gi"
+          ossPVCName: "oss-pvc"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+
+---
+# ❌ INVALID Example 3: Neither entryPoint NOR cmd specified
+# This will be REJECTED by Kubernetes API server with validation error
+# Error: "either entryPoint or cmd must be specified"
+apiVersion: lake.lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: invalid-neither-entrypoint-nor-cmd
+  namespace: default
+spec:
+  trigger:
+    schedule:
+      cron: "0 5 * * *"
+  tasks:
+    - name: etl-task
+      executor: python
+      commandExecutor:
+        pythonProjectMode:
+          archivePath: "/mnt/oss/projects/myproject.zip"
+          # ❌ Must specify either entryPoint or cmd
+          args: ["--config", "prod.json"]      # args alone is not enough
+        pvcSpec:
+          workflowStorageClass: "local-path"
+          workflowStorageSize: "5Gi"
+          ossPVCName: "oss-pvc"
+          ossBucketName: "my-bucket"
+          ossPath: "/projects"
+
+---
+# How to Test Validation
+# 
+# To test these validations:
+# 1. Apply the CRD: kubectl apply -f config/crd/bases/lakeflow.io_lakeflows.yaml
+# 2. Try to apply invalid examples - they should be rejected immediately
+# 3. Apply valid examples - they should be accepted
+#
+# Example test commands:
+# kubectl apply -f example/lakeflow/lw-python-project-validation-test.yaml
+#
+# Expected results:
+# ✅ valid-entrypoint-with-args: lakeflow.lake.lakeflow.io/valid-entrypoint-with-args created
+# ✅ valid-cmd-without-args: lakeflow.lake.lakeflow.io/valid-cmd-without-args created
+# ❌ invalid-cmd-with-args: Error from server (Invalid): error when creating "test.yaml": 
+#    LakeFlow.lake.lakeflow.io "invalid-cmd-with-args" is invalid: 
+#    spec.tasks[0].commandExecutor.pythonProjectMode: Invalid value: "object": 
+#    args cannot be used with cmd; either use entryPoint with args, or include all arguments in the cmd string
+

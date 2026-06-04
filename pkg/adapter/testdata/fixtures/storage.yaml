@@ -1,0 +1,49 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: golden-storage
+  namespace: lakeflow-golden
+spec:
+  trigger: {}
+  tasks:
+    - name: storage-job
+      executor: spark
+      sparkExecutor:
+        image: docker-registry.lakeflow.io/data-prod/spark:3.5.3-scala2.12-java17-python3-r-ubuntu
+        sparkVersion: "3.5.3"
+        mainClass: com.example.StorageJob
+        mainApplicationFile: oss://golden-bucket/jobs/storage-job.jar
+        queueName: golden-queue
+        credentialsRef:
+          name: golden-oss-credentials
+        driverResource:
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+        executorResource:
+          replicas: 1
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+        objectStorage:
+          bucket: golden-bucket
+          path: /data/golden
+          endpoint: oss-cn-hangzhou-internal.aliyuncs.com
+          accessMode: mount
+          storageClass: golden-oss-sc
+          mountSpec:
+            pvcName: golden-oss-pvc
+            storageSize: 50Gi
+            autoCreatePVC: true
+        blockStorage:
+          mode: pvc
+          size: 100Gi
+          storageClass: golden-executor-sc

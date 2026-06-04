@@ -1,0 +1,39 @@
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: golden-spark-schedule
+    lakeflow.io/state: Active
+  name: golden-spark-schedule
+  namespace: lakeflow-golden
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 10
+  schedules:
+  - '*/5 * * * *'
+  stopStrategy:
+    expression: (cronworkflow.succeeded + cronworkflow.failed) >= 1
+  successfulJobsHistoryLimit: 10
+  timezone: UTC
+  workflowMetadata:
+    creationTimestamp: null
+    labels:
+      app.kubernetes.io/managed-by: lakeflow-controller
+      lakeflow.io/name: golden-spark-schedule
+  workflowSpec:
+    arguments: {}
+    podGC:
+      deleteDelayDuration: 24h0m0s
+      strategy: OnWorkflowSuccess
+    synchronization:
+      mutexes:
+      - name: golden-spark-schedule
+    workflowTemplateRef:
+      name: golden-spark-schedule-template-1700000000
+status:
+  active: null
+  conditions: null
+  failed: 0
+  lastScheduledTime: null
+  phase: ""
+  succeeded: 0

@@ -1,0 +1,86 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: hybrid-pipeline
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: hybrid-pipeline
+    lakeflow.io/owner: zhenzhou
+spec:
+  trigger:
+    depend:
+      mode: all
+  tasks:
+    - name: python-preprocess
+      executor: python
+      serviceAccountName: "lakeflow-controller"
+      commandExecutor:
+        pvcSpec:
+          autoCreatePVC: true
+          workflowStorageClass: "alicloud-disk-essd-pl0"
+          workflowStorageSize: "20Gi"
+          ossBucketName: "data-bigdata-hdfs"
+          ossPVCName: "spark-oss-pvc"
+          ossPVCStorageSize: "20Gi"
+          ossPath: "/spark-on-k8s-dev"
+          ossSecretName: "oss-secret"
+          ossStorageClass: "alicloud-oss-spark-on-k8s"
+        scriptFileMode:
+          scriptPath: /mnt/oss/python-upload/falchat/disk_df.py
+          args:
+            - "/"
+
+    - name: spark-process
+      executor: spark
+      dependsOn: [
+        "python-preprocess"
+      ]
+      serviceAccountName: "lakeflow-controller"
+      sparkExecutor:
+        queueName: "falchat-spark-queue"
+        mainClass: "org.apache.spark.examples.SparkPi"
+        mainApplicationFile: "local:///opt/spark/examples/jars/spark-examples.jar"
+        pvcSpec:
+          autoCreatePVC: true
+          executorStorageClass: "alicloud-disk-essd-pl0"
+          executorStorageSize: "20Gi"
+          ossBucketName: "data-bigdata-hdfs"
+          ossPVCName: "spark-oss-pvc"
+          ossPVCStorageSize: "20Gi"
+          ossPath: "/spark-on-k8s-dev"
+          ossSecretName: "oss-secret"
+          ossStorageClass: "alicloud-oss-spark-on-k8s"
+
+        driverResource:
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1G"
+        executorResource:
+          replicas: 1
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1G"
+
+    - name: postprocess
+      executor: bash
+      dependsOn: [ "spark-process" ]
+      serviceAccountName: "lakeflow-controller"
+      commandExecutor:
+        pvcSpec:
+          autoCreatePVC: true
+          workflowStorageClass: "alicloud-disk-essd-pl0"
+          workflowStorageSize: "20Gi"
+          ossBucketName: "data-bigdata-hdfs"
+          ossPVCName: "spark-oss-pvc"
+          ossPVCStorageSize: "20Gi"
+          ossPath: "/spark-on-k8s-dev"
+          ossSecretName: "oss-secret"
+          ossStorageClass: "alicloud-oss-spark-on-k8s"
+        scriptFileMode:
+          scriptPath: /mnt/oss/bash-upload/falchat/check_env.sh
+          args:
+            - "/"

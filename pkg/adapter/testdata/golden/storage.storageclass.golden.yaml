@@ -1,0 +1,14 @@
+allowVolumeExpansion: true
+metadata:
+  creationTimestamp: null
+  name: golden-oss-sc
+parameters:
+  bucket: golden-bucket
+  csi.storage.k8s.io/node-publish-secret-name: golden-oss-credentials
+  csi.storage.k8s.io/node-publish-secret-namespace: lakeflow-golden
+  otherOpts: -o allow_other -o umask=000
+  path: /data/golden
+  url: oss-cn-hangzhou-internal.aliyuncs.com
+provisioner: ossplugin.csi.alibabacloud.com
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer

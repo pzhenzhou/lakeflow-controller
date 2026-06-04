@@ -1,0 +1,125 @@
+# LakeFlow examples for PythonProjectMode
+# This workflow demonstrates all three test scenarios:
+#   1. entryPoint + args (already tested)
+#   2. dependencyScript + cmd
+#   3. cmd only
+#
+# Prerequisites - Create and upload archives:
+#
+# Test 1: entryPoint + args
+#   cd example/python-project-demo && zip -r demo-project.zip main.py
+#   Upload to: /pyproject-upload/test/demo-project.zip
+#
+# Test 2: dependencyScript + cmd  
+#   cd example/python-project-demo/demo-with-deps && zip -r demo-with-deps.zip main.py build-deps.sh
+#   Upload to: /pyproject-upload/test/demo-with-deps.zip
+#
+# Test 3: cmd only
+#   cd example/python-project-demo/demo-cmd-only && zip -r demo-cmd-only.zip app.py
+#   Upload to: /pyproject-upload/test/demo-cmd-only.zip
+#
+---
+# Test 1: entryPoint + args (TESTED)
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: python-project-entrypoint-test
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: python-project-entrypoint-test
+spec:
+  trigger:
+    depend:
+      mode: all
+  tasks:
+    - name: test-entrypoint-args
+      executor: python
+      serviceAccountName: "lakeflow-controller"
+      commandExecutor:
+        pvcSpec:
+          autoCreatePVC: true
+          workflowStorageClass: "alicloud-disk-essd-pl0"
+          workflowStorageSize: "20Gi"
+          ossBucketName: "data-bigdata-hdfs"
+          ossPVCName: "spark-oss-pvc"
+          ossPVCStorageSize: "20Gi"
+          ossPath: "/spark-on-k8s-dev"
+          ossSecretName: "oss-secret"
+          ossStorageClass: "alicloud-oss-spark-on-k8s"
+        pythonProjectMode:
+          archivePath: "/mnt/oss/pyproject-upload/test/demo-project.zip"
+          entryPoint: "main.py"
+          args:
+            - "--env"
+            - "test"
+---
+# Test 2: dependencyScript + cmd
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: python-project-deps-cmd-test
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: python-project-deps-cmd-test
+spec:
+  trigger:
+    depend:
+      mode: all
+  tasks:
+    - name: test-deps-with-cmd
+      executor: python
+      serviceAccountName: "lakeflow-controller"
+      commandExecutor:
+        pvcSpec:
+          autoCreatePVC: true
+          workflowStorageClass: "alicloud-disk-essd-pl0"
+          workflowStorageSize: "20Gi"
+          ossBucketName: "data-bigdata-hdfs"
+          ossPVCName: "spark-oss-pvc"
+          ossPVCStorageSize: "20Gi"
+          ossPath: "/spark-on-k8s-dev"
+          ossSecretName: "oss-secret"
+          ossStorageClass: "alicloud-oss-spark-on-k8s"
+        pythonProjectMode:
+          archivePath: "/mnt/oss/pyproject-upload/test/demo-with-deps.zip"
+          # Run dependency script first, then execute command
+          dependencyScript: "build-deps.sh"
+          cmd: "python3 main.py --env production"
+---
+# Test 3: cmd only (no entryPoint, no dependencyScript)
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: python-project-cmd-only-test
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: python-project-cmd-only-test
+spec:
+  trigger:
+    depend:
+      mode: all
+  tasks:
+    - name: test-cmd-only
+      executor: python
+      serviceAccountName: "lakeflow-controller"
+      commandExecutor:
+        pvcSpec:
+          autoCreatePVC: true
+          workflowStorageClass: "alicloud-disk-essd-pl0"
+          workflowStorageSize: "20Gi"
+          ossBucketName: "data-bigdata-hdfs"
+          ossPVCName: "spark-oss-pvc"
+          ossPVCStorageSize: "20Gi"
+          ossPath: "/spark-on-k8s-dev"
+          ossSecretName: "oss-secret"
+          ossStorageClass: "alicloud-oss-spark-on-k8s"
+        pythonProjectMode:
+          archivePath: "/mnt/oss/pyproject-upload/test/demo-cmd-only.zip"
+          # Full command - no entryPoint needed
+          cmd: "python3 app.py --mode standalone"

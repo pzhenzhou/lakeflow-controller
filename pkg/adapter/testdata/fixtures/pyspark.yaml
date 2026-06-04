@@ -1,0 +1,36 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: golden-pyspark
+  namespace: lakeflow-golden
+spec:
+  trigger: {}
+  tasks:
+    - name: py-job
+      executor: spark
+      sparkExecutor:
+        image: docker-registry.lakeflow.io/data-prod/spark:3.5.3-scala2.12-java17-python3-r-ubuntu
+        sparkVersion: "3.5.3"
+        sparkAppType: Python
+        mainApplicationFile: local:///mnt/spark/app/main.py
+        queueName: golden-queue
+        pyFiles:
+          - local:///mnt/spark/app/project.zip
+        pySitePkgsArchive: local:///mnt/spark/pyspark-sitepkgs/pyspark_sitepkgs.tar.gz
+        driverResource:
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+        executorResource:
+          replicas: 1
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"

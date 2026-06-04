@@ -1,0 +1,15 @@
+metadata:
+  creationTimestamp: null
+  name: golden-oss-pvc
+  namespace: lakeflow-golden
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    limits:
+      storage: 50Gi
+    requests:
+      storage: 50Gi
+  storageClassName: golden-oss-sc
+  volumeMode: Filesystem
+status: {}

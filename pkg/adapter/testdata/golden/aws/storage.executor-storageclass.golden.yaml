@@ -1,0 +1,10 @@
+allowVolumeExpansion: true
+metadata:
+  creationTimestamp: null
+  name: golden-executor-sc
+parameters:
+  fsType: xfs
+  type: gp3
+provisioner: ebs.csi.aws.com
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

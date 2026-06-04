@@ -1,0 +1,11 @@
+allowVolumeExpansion: true
+metadata:
+  creationTimestamp: null
+  name: golden-executor-sc
+parameters:
+  fstype: xfs
+  performanceLevel: PL1
+  type: cloud_essd
+provisioner: diskplugin.csi.alibabacloud.com
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

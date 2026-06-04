@@ -1,0 +1,33 @@
+# This patch ensures the webhook certificates are properly mounted in the manager container.
+# It configures the --webhook-cert-path argument, the serving port, and the cert volume.
+# It targets kind: Deployment, so it applies to all controller-manager-group{1,2,3} pods.
+
+# Configure the webhook certificate path.
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: --webhook-cert-path=/tmp/k8s-webhook-server/serving-certs
+
+# Expose the webhook server port.
+- op: add
+  path: /spec/template/spec/containers/0/ports/-
+  value:
+    containerPort: 9443
+    name: webhook-server
+    protocol: TCP
+
+# Mount the serving certificate (read-only).
+- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value:
+    mountPath: /tmp/k8s-webhook-server/serving-certs
+    name: webhook-certs
+    readOnly: true
+
+# Provide the serving certificate from the cert-manager-issued secret.
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: webhook-certs
+    secret:
+      defaultMode: 420
+      secretName: webhook-server-cert

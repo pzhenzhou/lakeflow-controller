@@ -1,0 +1,24 @@
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: golden-command-script
+  namespace: lakeflow-golden
+spec:
+  trigger: {}
+  tasks:
+    - name: run-script
+      executor: bash
+      serviceAccountName: lakeflow-runner
+      queueName: golden-queue
+      commandExecutor:
+        image: docker-registry.lakeflow.io/data-prod/python3-pipinstall-ckclient-pyjindo6.9.1:v2.0.2
+        scriptFileMode:
+          scriptPath: /mnt/oss/scripts/process.sh
+          args: ["--date", "2026-01-01"]
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "512Mi"

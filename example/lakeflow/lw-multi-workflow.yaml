@@ -1,0 +1,88 @@
+---
+# Workflow1: Scheduled workflow with stop strategy (runs once at specified time)
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: workflow1
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: workflow1
+    lakeflow.io/owner: zhenzhou
+spec:
+  # Schedule trigger: runs 5 minutes from now (11:45 UTC on Nov 12, 2025)
+  # Stop strategy: stops after one successful execution
+  trigger:
+    schedule:
+      cron: "*/5 * * * *"
+      timezone: "UTC"
+      stopStrategy:
+        phase: "success"  # Stop after first successful run
+        count: 1  # Stop when at least 1 workflow succeeded
+  
+  # Linear dependencies with two bash tasks
+  tasks:
+    - name: init-task
+      executor: bash
+      serviceAccountName: lakeflow-controller
+      commandExecutor:
+        inlineMode:
+          command: [ "/bin/bash", "-c" ]
+          args: [ "echo 'Initializing environment: production'; echo 'Setting log level: info'; mkdir -p /tmp/workflow1; echo 'Environment initialized successfully' > /tmp/workflow1/init.log" ]
+
+    - name: process-task
+      executor: python
+      dependsOn: [ "init-task" ]
+      serviceAccountName: lakeflow-controller
+      commandExecutor:
+        inlineMode:
+          command: [ "python3", "-c" ]
+          args: [ "import os; print('Processing task started'); print('Using config: /config/process.yaml'); os.makedirs('/tmp/workflow1/results', exist_ok=True); open('/tmp/workflow1/results/output.txt', 'w').write('processing result data\\n'); print('Processing completed successfully')" ]
+      retryPolicy:
+        maxRetries: 3
+        backOff: "30s"
+        backoffFactor: 1.5
+
+---
+# Workflow2: Triggered automatically when workflow1 succeeds
+# This demonstrates the workflow-on-workflow dependency pattern:
+# 1. workflow1 runs at scheduled time (11:45 UTC)
+# 2. workflow1 completes successfully
+# 3. EventSource detects the completion
+# 4. Sensor triggers workflow2 automatically
+apiVersion: lakeflow.io/v1alpha1
+kind: LakeFlow
+metadata:
+  name: workflow2
+  namespace: lakeflow-controller-test
+  labels:
+    app.kubernetes.io/name: lakeflow-controller
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/owner: zhenzhou
+    lakeflow.io/name: workflow2
+    lakeflow.io/depend-workflow-namespace: lakeflow-controller-test
+    lakeflow.io/depend-workflow-name: workflow1
+
+spec:
+  serviceAccountName: lakeflow-controller
+  # Trigger only when workflow1 succeeds
+  trigger:
+    depend:
+      mode: all
+      workflows:
+        - name: workflow1
+          namespace: lakeflow-controller-test
+          phase: Succeeded
+
+
+  # Single task that executes after workflow1 completion
+  tasks:
+    - name: cleanup-task
+      executor: bash
+      serviceAccountName: lakeflow-controller
+      commandExecutor:
+        inlineMode:
+          command: [ "/bin/bash", "-c" ]
+          args: [ "echo 'Cleanup task started'; echo 'Checking workflow1 results...'; ls -la /tmp/workflow1/ || echo 'No workflow1 data found (expected in separate containers)'; mkdir -p /tmp/archive; echo 'Archiving data with 30d retention...'; echo 'Cleanup completed successfully'" ]
+

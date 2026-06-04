@@ -1,0 +1,52 @@
+# SparkPi Example with Volcano Scheduler
+# This is a simplified SparkApplication for e2e testing and local development
+# that demonstrates Spark + Volcano integration without complex configurations
+
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: spark-pi-volcano
+  namespace: lake-flow-controller-test
+spec:
+  type: Java
+  mode: cluster
+  image: apache/spark:3.5.6-scala2.12-java17-python3-r-ubuntu
+  imagePullPolicy: IfNotPresent
+  mainClass: org.apache.spark.examples.SparkPi
+  mainApplicationFile: local:///opt/spark/examples/jars/spark-examples.jar
+  arguments:
+    - "50"  # Number of partitions for Pi calculation
+  sparkVersion: "3.5.6"
+  
+  # Driver configuration
+  driver:
+    cores: 1
+    memory: 512m
+    serviceAccount: lake-flow-controller
+
+  # Executor configuration  
+  executor:
+    instances: 1
+    cores: 1
+    memory: 512m
+
+  # Enable Volcano batch scheduler
+  batchScheduler: lakeflow-queue
+
+---
+# Example usage commands:
+#
+# 1. Apply the SparkApplication:
+#    kubectl apply -f example/spark-pi-volcano.yaml
+#
+# 2. Check the job status:
+#    kubectl get sparkapp spark-pi-volcano
+#
+# 3. View logs:
+#    kubectl logs -f spark-pi-volcano-driver
+#
+# 4. Clean up:
+#    kubectl delete sparkapp spark-pi-volcano
+#
+# Expected output should show Pi calculation result like:
+# "Pi is roughly 3.141592653589793" 

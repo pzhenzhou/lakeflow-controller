@@ -1,0 +1,22 @@
+# Prometheus Monitor Service (Metrics)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    app.kubernetes.io/component: controller-manager-metrics-monitor
+    control-plane: controller-manager
+    app.kubernetes.io/managed-by: kustomize
+  labels:
+    lakeflow.io/prometheus-service-monitor: "true"
+    app.kubernetes.io/name: kube-state-metrics
+  name: controller-manager-metrics-monitor
+  namespace: system
+spec:
+  endpoints:
+    - path: /metrics
+      port: http # Port name that exposes HTTP metrics (no authentication)
+      scheme: http
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/name: lakeflow-controller

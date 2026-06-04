@@ -1,0 +1,229 @@
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/managed-by: lakeflow-controller
+    lakeflow.io/name: golden-command-python-project
+    lakeflow.io/state: Active
+    lakeflow.io/template-timestamp: "1700000000"
+  name: golden-command-python-project-template-1700000000
+  namespace: lakeflow-golden
+spec:
+  arguments: {}
+  entrypoint: golden-command-python-project-main
+  templates:
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: archivePath
+            value: /mnt/oss/projects/simple-etl.zip
+          - name: entryPoint
+            value: main.py
+          - name: projectScript
+            value: |
+              set -e
+              echo "=== Python Project Mode Execution ==="
+              echo "Archive: /mnt/oss/projects/simple-etl.zip"
+
+              # Extract project name from archive path (remove path and extension)
+              ARCHIVE="/mnt/oss/projects/simple-etl.zip"
+              ARCHIVE_BASENAME=$(basename "$ARCHIVE")
+              # Remove all known extensions (.zip, .tar.gz, .tgz, .tar)
+              PROJECT_NAME="${ARCHIVE_BASENAME%.zip}"
+              PROJECT_NAME="${PROJECT_NAME%.tar.gz}"
+              PROJECT_NAME="${PROJECT_NAME%.tgz}"
+              PROJECT_NAME="${PROJECT_NAME%.tar}"
+
+              # Extract to temporary directory first
+              EXTRACT_DIR="/data/${PROJECT_NAME}-extract"
+              mkdir -p "$EXTRACT_DIR"
+              echo "Extracting to temporary directory: $EXTRACT_DIR"
+
+              # Extract archive based on file extension
+              if [[ "$ARCHIVE" == *.zip ]]; then
+                  echo "Extracting ZIP archive..."
+                  unzip -o "$ARCHIVE" -d "$EXTRACT_DIR"
+              elif [[ "$ARCHIVE" == *.tar.gz ]] || [[ "$ARCHIVE" == *.tgz ]]; then
+                  echo "Extracting TAR.GZ archive..."
+                  tar -xzf "$ARCHIVE" -C "$EXTRACT_DIR"
+              elif [[ "$ARCHIVE" == *.tar ]]; then
+                  echo "Extracting TAR archive..."
+                  tar -xf "$ARCHIVE" -C "$EXTRACT_DIR"
+              else
+                  echo "Error: Unsupported archive format. Supported: .zip, .tar.gz, .tgz, .tar"
+                  exit 1
+              fi
+
+              # Intelligently detect working directory based on archive structure
+              # Check if extraction resulted in a single top-level directory
+              shopt -s nullglob dotglob
+              TOP_LEVEL_ITEMS=("$EXTRACT_DIR"/*)
+              shopt -u nullglob dotglob
+
+              if [ ${#TOP_LEVEL_ITEMS[@]} -eq 0 ]; then
+                  echo "Error: Archive is empty"
+                  exit 1
+              elif [ ${#TOP_LEVEL_ITEMS[@]} -eq 1 ] && [ -d "${TOP_LEVEL_ITEMS[0]}" ]; then
+                  # Single top-level directory - use it as working directory
+                  # Example: myproject.zip contains myproject/main.py
+                  PROJECT_DIR="${TOP_LEVEL_ITEMS[0]}"
+                  echo "Archive contains single top-level directory"
+                  echo "Working directory: $PROJECT_DIR"
+              else
+                  # Multiple items at root or single file - use extraction directory as working directory
+                  # Example: myproject.zip contains main.py, config.py at root
+                  PROJECT_DIR="$EXTRACT_DIR"
+                  echo "Archive contains files at root level"
+                  echo "Working directory: $PROJECT_DIR"
+              fi
+
+              echo "Project structure:"
+              ls -la "$PROJECT_DIR"
+
+              # Change to project working directory
+              cd "$PROJECT_DIR"
+              echo "Current working directory: $(pwd)"
+
+              # Run dependency installation script
+              DEP_SCRIPT="$PROJECT_DIR/build-dep.bash"
+              if [ -f "$DEP_SCRIPT" ]; then
+                  echo "Running dependency installation script: $DEP_SCRIPT"
+                  chmod +x "$DEP_SCRIPT"
+                  bash "$DEP_SCRIPT"
+              else
+                  echo "Error: Dependency script not found: $DEP_SCRIPT"
+                  exit 1
+              fi
+
+              # Execute entry point with python3
+              ENTRY_POINT="$PROJECT_DIR/main.py"
+              if [ ! -f "$ENTRY_POINT" ]; then
+                  echo "Error: Entry point not found: $ENTRY_POINT"
+                  exit 1
+              fi
+
+              # Prepare arguments array
+              ARGS=("--env" "golden")
+              echo "Executing: python3 $ENTRY_POINT ${ARGS[@]}"
+              python3 "$ENTRY_POINT" "${ARGS[@]}"
+
+              echo "=== Python Project Execution Complete ==="
+        name: run-project
+        template: run-project
+    inputs: {}
+    metadata: {}
+    name: golden-command-python-project-main
+    outputs: {}
+  - container:
+      args:
+      - '{{inputs.parameters.projectScript}}'
+      command:
+      - /bin/bash
+      - -c
+      image: docker-registry.lakeflow.io/data-prod/python3-pipinstall-ckclient-pyjindo6.9.1:v2.0.2
+      imagePullPolicy: IfNotPresent
+      name: run-project
+      resources: {}
+    inputs:
+      parameters:
+      - name: archivePath
+        value: /mnt/oss/projects/simple-etl.zip
+      - name: entryPoint
+        value: main.py
+      - name: projectScript
+        value: |
+          set -e
+          echo "=== Python Project Mode Execution ==="
+          echo "Archive: /mnt/oss/projects/simple-etl.zip"
+
+          # Extract project name from archive path (remove path and extension)
+          ARCHIVE="/mnt/oss/projects/simple-etl.zip"
+          ARCHIVE_BASENAME=$(basename "$ARCHIVE")
+          # Remove all known extensions (.zip, .tar.gz, .tgz, .tar)
+          PROJECT_NAME="${ARCHIVE_BASENAME%.zip}"
+          PROJECT_NAME="${PROJECT_NAME%.tar.gz}"
+          PROJECT_NAME="${PROJECT_NAME%.tgz}"
+          PROJECT_NAME="${PROJECT_NAME%.tar}"
+
+          # Extract to temporary directory first
+          EXTRACT_DIR="/data/${PROJECT_NAME}-extract"
+          mkdir -p "$EXTRACT_DIR"
+          echo "Extracting to temporary directory: $EXTRACT_DIR"
+
+          # Extract archive based on file extension
+          if [[ "$ARCHIVE" == *.zip ]]; then
+              echo "Extracting ZIP archive..."
+              unzip -o "$ARCHIVE" -d "$EXTRACT_DIR"
+          elif [[ "$ARCHIVE" == *.tar.gz ]] || [[ "$ARCHIVE" == *.tgz ]]; then
+              echo "Extracting TAR.GZ archive..."
+              tar -xzf "$ARCHIVE" -C "$EXTRACT_DIR"
+          elif [[ "$ARCHIVE" == *.tar ]]; then
+              echo "Extracting TAR archive..."
+              tar -xf "$ARCHIVE" -C "$EXTRACT_DIR"
+          else
+              echo "Error: Unsupported archive format. Supported: .zip, .tar.gz, .tgz, .tar"
+              exit 1
+          fi
+
+          # Intelligently detect working directory based on archive structure
+          # Check if extraction resulted in a single top-level directory
+          shopt -s nullglob dotglob
+          TOP_LEVEL_ITEMS=("$EXTRACT_DIR"/*)
+          shopt -u nullglob dotglob
+
+          if [ ${#TOP_LEVEL_ITEMS[@]} -eq 0 ]; then
+              echo "Error: Archive is empty"
+              exit 1
+          elif [ ${#TOP_LEVEL_ITEMS[@]} -eq 1 ] && [ -d "${TOP_LEVEL_ITEMS[0]}" ]; then
+              # Single top-level directory - use it as working directory
+              # Example: myproject.zip contains myproject/main.py
+              PROJECT_DIR="${TOP_LEVEL_ITEMS[0]}"
+              echo "Archive contains single top-level directory"
+              echo "Working directory: $PROJECT_DIR"
+          else
+              # Multiple items at root or single file - use extraction directory as working directory
+              # Example: myproject.zip contains main.py, config.py at root
+              PROJECT_DIR="$EXTRACT_DIR"
+              echo "Archive contains files at root level"
+              echo "Working directory: $PROJECT_DIR"
+          fi
+
+          echo "Project structure:"
+          ls -la "$PROJECT_DIR"
+
+          # Change to project working directory
+          cd "$PROJECT_DIR"
+          echo "Current working directory: $(pwd)"
+
+          # Run dependency installation script
+          DEP_SCRIPT="$PROJECT_DIR/build-dep.bash"
+          if [ -f "$DEP_SCRIPT" ]; then
+              echo "Running dependency installation script: $DEP_SCRIPT"
+              chmod +x "$DEP_SCRIPT"
+              bash "$DEP_SCRIPT"
+          else
+              echo "Error: Dependency script not found: $DEP_SCRIPT"
+              exit 1
+          fi
+
+          # Execute entry point with python3
+          ENTRY_POINT="$PROJECT_DIR/main.py"
+          if [ ! -f "$ENTRY_POINT" ]; then
+              echo "Error: Entry point not found: $ENTRY_POINT"
+              exit 1
+          fi
+
+          # Prepare arguments array
+          ARGS=("--env" "golden")
+          echo "Executing: python3 $ENTRY_POINT ${ARGS[@]}"
+          python3 "$ENTRY_POINT" "${ARGS[@]}"
+
+          echo "=== Python Project Execution Complete ==="
+    metadata:
+      labels:
+        lakeflow.io/name: golden-command-python-project
+        lakeflow.io/task: run-project
+    name: run-project
+    nodeSelector:
+      volcano.sh/nodegroup-name: volcano-batch-job
+    outputs: {}
