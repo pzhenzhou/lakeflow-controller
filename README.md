@@ -51,7 +51,7 @@ A `LakeFlow` is a workflow: a trigger plus a DAG of tasks. Each task runs on an 
 each `LakeFlow` into resources owned by mature, battle-tested projects:
 
 | Concern                           | Backing project                                                     |
-| --------------------------------- | ------------------------------------------------------------------- |
+|-----------------------------------|---------------------------------------------------------------------|
 | Workflow orchestration / task DAG | **Argo Workflows** (`WorkflowTemplate`, `Workflow`, `CronWorkflow`) |
 | Spark task execution              | **Spark Operator** (Kubeflow) `SparkApplication`                    |
 | Batch scheduling                  | **Volcano**                                                         |
@@ -71,7 +71,7 @@ heavy lifting to the standard Kubernetes data stack.
 For a `Dependency`-triggered `LakeFlow`, the controller only renders the `WorkflowTemplate`
 and then stops — it does not decide _when_ the workflow should run.
 
-That decision is owned by a separate **`lakeflow-sensor`** project (coming soon), which
+That decision is owned by a separate [`lakeflow-sensor`](https://github.com/pzhenzhou/lakeflow-sensor) project , which
 watches upstream workflow states and creates the actual `Workflow` from the template once the
 declared upstream conditions are satisfied. Keeping the controller out of dependency
 evaluation keeps it stateless and focused on translation; the sensor handles the
@@ -138,11 +138,11 @@ spec:
         queueName: default
     - name: validate
       executor: bash
-      dependsOn: ["extract"]
+      dependsOn: [ "extract" ]
       commandExecutor:
         inlineMode:
-          command: ["/bin/bash", "-c"]
-          args: ["echo 'validation passed'"]
+          command: [ "/bin/bash", "-c" ]
+          args: [ "echo 'validation passed'" ]
 ```
 
 ## Using the API from Go
@@ -152,10 +152,10 @@ no generated client needed. Import the types and register the scheme:
 
 ```go
 import (
-    "k8s.io/apimachinery/pkg/runtime"
-    "sigs.k8s.io/controller-runtime/pkg/client"
+"k8s.io/apimachinery/pkg/runtime"
+"sigs.k8s.io/controller-runtime/pkg/client"
 
-    "github.com/pzhenzhou/lakeflow-controller/api/v1alpha1"
+"github.com/pzhenzhou/lakeflow-controller/api/v1alpha1"
 )
 
 scheme := runtime.NewScheme()
@@ -164,7 +164,7 @@ _ = v1alpha1.AddToScheme(scheme)
 k8sClient, _ := client.New(config, client.Options{Scheme: scheme})
 
 lf := &v1alpha1.LakeFlow{ /* ObjectMeta + Spec */ }
-_ = k8sClient.Create(ctx, lf)   // also: Get / Update / List / Delete
+_ = k8sClient.Create(ctx, lf) // also: Get / Update / List / Delete
 ```
 
 ## Roadmap
@@ -173,12 +173,10 @@ LakeFlow is designed as an engine-agnostic surface. Today it targets Spark via t
 Operator; planned work includes first-class support for additional engines so a single
 workflow can mix executors:
 
-- [ ] **`lakeflow-sensor`** — companion project that evaluates workflow-on-workflow
-      dependencies and triggers `Dependency` workflows (coming soon)
+- [x] **`lakeflow-sensor`** — companion project that evaluates workflow-on-workflow
+  dependencies and triggers `Dependency` workflows
 - [ ] **Ray** task executor
 - [ ] Pluggable engine abstraction so new compute backends can be added without API changes
-
-
 
 ## License
 
